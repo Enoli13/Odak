@@ -21,6 +21,9 @@ object Notifs {
     const val ID_PLAN = 1
     const val ID_WHAT = 2
     const val ID_SRBAI = 3
+    const val ID_BATCH = 4
+    const val EXTRA_OPEN = "open"
+    const val OPEN_INBOX = "inbox"
 
     fun createChannel(context: Context) {
         val channel = NotificationChannel(CHANNEL, "Hatırlatmalar", NotificationManager.IMPORTANCE_DEFAULT).apply {
@@ -37,11 +40,13 @@ object Notifs {
     }
 
     @SuppressLint("MissingPermission")
-    fun post(context: Context, id: Int, title: String, text: String) {
+    fun post(context: Context, id: Int, title: String, text: String, openTarget: String? = null) {
         if (!canPost(context)) return
+        val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (openTarget != null) intent.putExtra(EXTRA_OPEN, openTarget)
         val open = PendingIntent.getActivity(
             context, id,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = NotificationCompat.Builder(context, CHANNEL)
@@ -53,6 +58,11 @@ object Notifs {
             .setAutoCancel(true)
             .build()
         NotificationManagerCompat.from(context).notify(id, n)
+    }
+
+    /** 3 · Toplu bildirim özeti. */
+    fun postBatch(context: Context, count: Int, byApp: String) {
+        post(context, ID_BATCH, "$count bildirim seni bekliyor", byApp, OPEN_INBOX)
     }
 
     /** "Yine de aç" sonrası uygulamadan çıkınca: suçlamadan, planı hatırlat. */

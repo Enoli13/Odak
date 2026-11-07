@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -54,6 +56,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         Repo.init(applicationContext)
+        handleOpen(intent)
         setContent {
             OdakTheme {
                 val data by Repo.data.collectAsState()
@@ -64,6 +67,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleOpen(intent)
+    }
+
+    private fun handleOpen(i: android.content.Intent?) {
+        if (i == null) return
+        val target = i.getStringExtra(com.enoli.odak.work.Notifs.EXTRA_OPEN) ?: return
+        UiEvents.openRequest.value = target
+        i.removeExtra(com.enoli.odak.work.Notifs.EXTRA_OPEN)
     }
 
     private var splashRun by mutableIntStateOf(0)
@@ -93,6 +108,8 @@ sealed interface Route {
     data object Decks : Route
     data object Rhythm : Route
     data object Settings : Route
+    data object Report : Route
+    data object Inbox : Route
     data class Deck(val id: Long) : Route
     /** deckId null: tüm destelerden karışık. */
     data class Study(val deckId: Long?, val count: Int) : Route
@@ -111,8 +128,17 @@ private fun AppShell() {
         Tab(Route.Home, "Bugün", Icons.Filled.Home),
         Tab(Route.Decks, "Desteler", Icons.AutoMirrored.Filled.List),
         Tab(Route.Rhythm, "Ritim", Icons.Filled.DateRange),
+        Tab(Route.Report, "Rapor", Icons.Filled.Info),
         Tab(Route.Settings, "Ayarlar", Icons.Filled.Settings),
     )
+
+    val openRequest by UiEvents.openRequest.collectAsState()
+    LaunchedEffect(openRequest) {
+        if (openRequest == com.enoli.odak.work.Notifs.OPEN_INBOX) {
+            overlay = Route.Inbox
+            UiEvents.openRequest.value = null
+        }
+    }
 
     BackHandler(enabled = overlay != null || tab != Route.Home) {
         if (overlay != null) overlay = null else tab = Route.Home
@@ -159,14 +185,17 @@ private fun AppShell() {
                     }
                 }
                 is Route.Srbai -> SrbaiScreen(onDone = close)
+                is Route.Inbox -> com.enoli.odak.ui.report.InboxScreen(onBack = close)
                 else -> when (tab) {
                     Route.Decks -> DecksScreen(onOpen = { open(Route.Deck(it)) })
                     Route.Rhythm -> RhythmScreen(onSrbai = { open(Route.Srbai) })
                     Route.Settings -> SettingsScreen()
+                    Route.Report -> com.enoli.odak.ui.report.ReportScreen()
                     else -> HomeScreen(
                         onStudy = { n -> open(Route.Study(null, n)) },
                         onSrbai = { open(Route.Srbai) },
                         onDecks = { tab = Route.Decks },
+                        onInbox = { open(Route.Inbox) },
                     )
                 }
             }

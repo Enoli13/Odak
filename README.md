@@ -13,7 +13,13 @@ Tasarım belgesindeki MVP'nin dört modülü + ana döngünün "Ne yapacaktın?"
 | 4. Ritim takvimi (10 haftalık tik tablosu, pazar SRBAI 4 soru, seri sıfırlanmaz, "ara uzadı" notu) | ✅ | `ui/rhythm/`, `work/ReminderWorker.kt` |
 | "Az önce ne yapacaktın?" (Yine de aç → uygulamadan çıkınca bildirim) | ✅ | `service/GateService.kt` |
 | Hak edilmiş mola (25 dk blok → 10 dk serbest) | ✅ | Ana sayfa + durdurma ekranı |
-| Sınav planlayıcı, gri ekran, limitler, gece modu, akşam kartı | v2 | — |
+| Sürekli kaydırma sayacı (10/15/20 dk → "Bırak → 3 kart" / "5 dk daha") | ✅ | `service/GateService.kt`, `GateState.kt` |
+| "Şu an ne hissediyorsun?" sorusu ve hisse göre öneri | ✅ | `ui/stop/StopActivity.kt` |
+| Toplu bildirim modu (günde 3 özet) | ✅ | `service/BatchListener.kt`, `work/BatchWorker.kt` |
+| Kademeli geri çekilme ve bakım modu (SRBAI'ye göre) | ✅ | `data/Repo.kt` → `withdraw()` |
+| İlerleme odaklı ana ekran, ekran süresi yalnızca Rapor'da | ✅ | `ui/home/`, `ui/report/` |
+| İlk 7 gün ölçüm, 10 haftalık deney raporu, CSV | ✅ | `data/Report.kt`, `ui/report/ReportScreen.kt` |
+| Sınav planlayıcı, gri ekran, limitler, akşam kartı | sonra | — |
 | PDF'den kart, destekçi modu | v3 | — |
 
 Ek: desteye **toplu kart yapıştırma** (`soru | cevap | neden?` her satıra bir kart) ve isteğe bağlı küçük bir örnek deste.

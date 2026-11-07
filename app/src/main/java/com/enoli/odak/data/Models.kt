@@ -38,6 +38,55 @@ data class DayLog(
     val opens: Int = 0,
     val cards: Int = 0,
     val ticked: Boolean = false,
+    /** Kart değerlendirmeleri ve "bildim" sayısı (doğru oranı için). */
+    val reviews: Int = 0,
+    val correct: Int = 0,
+    /** Ölçüm haftasında müdahale olmadan sayılan dürtüler. */
+    val baseline: Int = 0,
+)
+
+/**
+ * Telefondan çıkmayan olay günlüğü. [type]:
+ * gate, quit, open, baseline, mood, scroll_gate, scroll_stop, scroll_more.
+ */
+data class Ev(
+    val ts: Long,
+    val type: String,
+    val pkg: String = "",
+    val value: String = "",
+)
+
+object Mood {
+    const val BORED = "sikildim"
+    const val TIRED = "yorgunum"
+    const val ESCAPE = "kaciyorum"
+    const val HABIT = "aliskanlik"
+
+    val all = listOf(BORED, TIRED, ESCAPE, HABIT)
+
+    fun label(m: String) = when (m) {
+        BORED -> "Sıkıldım"
+        TIRED -> "Yorgunum"
+        ESCAPE -> "Bir şeyden kaçıyorum"
+        HABIT -> "Sadece alışkanlık"
+        else -> m
+    }
+
+    /** Saat dilimi: bağlamın kaba hâli. */
+    fun timeBucket(hour: Int) = when (hour) {
+        in 6..11 -> "Sabah"
+        in 12..17 -> "Öğleden sonra"
+        in 18..22 -> "Akşam"
+        else -> "Gece"
+    }
+}
+
+/** Toplu bildirim kuyruğundaki tek bildirim. */
+data class QueuedNotif(
+    val ts: Long,
+    val pkg: String,
+    val title: String,
+    val text: String,
 )
 
 /** Haftalık otomatiklik ölçümü (SRBAI, 4 madde, 1–7). */
@@ -65,6 +114,29 @@ data class Settings(
     val remindersOn: Boolean = true,
     /** Kullanıcı "izin kapalı kalsın" dediyse bir daha ısrar etmeyiz. */
     val accessibilityOptOut: Boolean = false,
+
+    // 1 · Sürekli scroll sayacı (dakika: 10/15/20)
+    val scrollThresholdMin: Int = 15,
+
+    // 2 · Kaçış cevabı için: ertelenen iş ve ilk küçük adım
+    val lastTask: String = "",
+    val lastFirstStep: String = "",
+
+    // 3 · Toplu bildirim modu
+    val batchOn: Boolean = false,
+    val batchApps: List<String> = listOf(
+        "com.instagram.android", "com.zhiliaoapp.musically", "com.ss.android.ugc.trill", "com.google.android.youtube",
+    ),
+    val batchHours: List<Int> = listOf(12, 17, 21),
+
+    // 4 · Kademeli geri çekilme
+    val withdrawLevel: Int = 0,
+    val maintenance: Boolean = false,
+    val maintenanceOffered: Boolean = false,
+    val withdrawNote: String = "",
+
+    // 6 · İlk 7 gün yalnızca ölçüm
+    val baselineWeek: Boolean = true,
 )
 
 data class AppData(
@@ -78,10 +150,19 @@ data class AppData(
     /** Hak edilmiş molanın bitiş zamanı. */
     val breakUntil: Long = 0L,
     val nextId: Long = 1L,
+    val events: List<Ev> = emptyList(),
+    /** Henüz gösterilmemiş toplu bildirimler. */
+    val batchQueue: List<QueuedNotif> = emptyList(),
+    /** Toplu olarak teslim edilmiş, kutuda bekleyen bildirimler. */
+    val batchInbox: List<QueuedNotif> = emptyList(),
+    val lastBatchDelivery: Long = 0L,
 ) {
     fun today(): DayLog = days[Day.today()] ?: DayLog(Day.today())
     fun day(d: Long): DayLog = days[d] ?: DayLog(d)
     fun cardsIn(deckId: Long): List<Card> = cards.filter { it.deckId == deckId }
+
+    /** 10 haftalık programda kaçıncı hafta (1'den başlar). */
+    fun programWeek(): Int = ((Day.today() - settings.startDay) / 7).toInt() + 1
 }
 
 object Day {

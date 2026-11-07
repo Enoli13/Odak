@@ -72,6 +72,7 @@ fun OnboardingScreen() {
     var urgeIf2 by remember { mutableStateOf("") }
     var urgeThen2 by remember { mutableStateOf("") }
     var seed by remember { mutableStateOf(true) }
+    var baseline by remember { mutableStateOf(true) }
 
     val lastStep = 7
     BackHandler(enabled = step > 0) { step-- }
@@ -89,6 +90,7 @@ fun OnboardingScreen() {
                 urgeThen = urgeThen2.trim(),
                 planHour = hour,
                 planMinute = minuteSlot * 5,
+                baselineWeek = baseline,
             )
         }
         if (seed) Repo.seedExampleDeck()
@@ -184,7 +186,7 @@ fun OnboardingScreen() {
                         thenValue = urgeThen2, onThen = { urgeThen2 = it }, thenHint = urgeThen,
                     )
                 }
-                else -> PermissionsStep(seed = seed, onSeed = { seed = it })
+                else -> PermissionsStep(seed = seed, onSeed = { seed = it }, baseline = baseline, onBaseline = { baseline = it })
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -295,7 +297,7 @@ private fun BondFields(
 }
 
 @Composable
-private fun PermissionsStep(seed: Boolean, onSeed: (Boolean) -> Unit) {
+private fun PermissionsStep(seed: Boolean, onSeed: (Boolean) -> Unit, baseline: Boolean, onBaseline: (Boolean) -> Unit) {
     val context = LocalContext.current
     val tick by UiEvents.resumed.collectAsState()
     var notifAsked by remember { mutableStateOf(false) }
@@ -339,6 +341,13 @@ private fun PermissionsStep(seed: Boolean, onSeed: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = seed, onCheckedChange = onSeed)
         Text("Denemek için küçük bir örnek deste ekle")
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(checked = baseline, onCheckedChange = onBaseline)
+        Column {
+            Text("İlk 7 gün yalnızca ölçüm yap (önerilen)")
+            Muted("Bu hafta durdurma ekranı çıkmaz, Odak yalnızca sayar. Böylece kendi başlangıç çizgini görürsün.")
+        }
     }
     if (!accOn) {
         Spacer(Modifier.height(8.dp))

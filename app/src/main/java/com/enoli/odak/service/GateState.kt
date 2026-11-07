@@ -10,15 +10,44 @@ object GateState {
 
     private class Pass(var leftAt: Long = 0L, var reminded: Boolean = false)
 
+    // ---- 1 · Sürekli scroll sayacı ----
+    private const val SCROLL_GAP_MS = 30_000L
+    private class ScrollRun(var start: Long, var last: Long)
+    private val scrolls = HashMap<String, ScrollRun>()
+
+    /** Kaydırma olayını sayar; kesintisiz kaydırma süresini (ms) döner. */
+    @Synchronized
+    fun onScroll(pkg: String, now: Long = System.currentTimeMillis()): Long {
+        val run = scrolls[pkg]
+        if (run == null || now - run.last > SCROLL_GAP_MS) {
+            scrolls[pkg] = ScrollRun(now, now)
+            return 0L
+        }
+        run.last = now
+        return now - run.start
+    }
+
+    /** "5 dk daha": sayaç, eşiğe 5 dakika kalacak şekilde geri alınır. */
+    @Synchronized
+    fun snoozeScroll(pkg: String, thresholdMs: Long, now: Long = System.currentTimeMillis()) {
+        scrolls[pkg] = ScrollRun(now - thresholdMs + 5 * 60_000L, now)
+    }
+
+    @Synchronized
+    fun resetScroll(pkg: String) {
+        scrolls.remove(pkg)
+    }
+
     private val passes = HashMap<String, Pass>()
 
     @Volatile
     var lastLaunchAt: Long = 0L
         private set
 
+    /** [remind] false ise (ör. ölçüm haftası) çıkışta "ne yapacaktın?" bildirimi gönderilmez. */
     @Synchronized
-    fun grant(pkg: String) {
-        passes[pkg] = Pass()
+    fun grant(pkg: String, remind: Boolean = true) {
+        passes[pkg] = Pass(reminded = !remind)
     }
 
     @Synchronized

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +82,50 @@ fun SettingsScreen() {
                 checked = s.earnedBreak,
             ) { on -> Repo.updateSettings { it.copy(earnedBreak = on) } }
         }
+
+        Panel {
+            Eyebrow("Kesintisiz kaydırma")
+            Spacer(Modifier.height(6.dp))
+            Muted("Bu kadar dakika durmadan kaydırırsan (izin verdiğin videolardan sonra bile) kapatılabilir bir ara ekran çıkar.")
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(10, 15, 20).forEach { m ->
+                    val sel = s.scrollThresholdMin == m
+                    if (sel) {
+                        Button(onClick = {}) { Text("$m dk") }
+                    } else {
+                        OutlinedButton(onClick = { Repo.updateSettings { it.copy(scrollThresholdMin = m) } }) { Text("$m dk") }
+                    }
+                }
+            }
+            if (s.withdrawLevel >= 1) {
+                Spacer(Modifier.height(6.dp))
+                Muted("Alışkanlığın oturduğu için şu an etkin eşik ${Repo.effectiveScrollMin(data)} dk, bekleme ${Repo.effectiveWait(data)} sn.")
+            }
+        }
+
+        Panel {
+            Eyebrow("Geri çekilme")
+            Spacer(Modifier.height(6.dp))
+            Muted(
+                "Pazar ölçümlerinde otomatiklik puanın 2 hafta 5+ olursa müdahale hafifler; 4 hafta 6+ olursa bakım modu önerilir. " +
+                    "Puan düşerse kendiliğinden önceki seviyeye döner.",
+            )
+            Spacer(Modifier.height(10.dp))
+            SwitchRow(
+                title = "Bakım modu",
+                sub = "Durdurma ve kaydırma ekranları kapanır; kartlar ve haftalık özet kalır.",
+                checked = s.maintenance,
+            ) { on -> Repo.setMaintenance(on) }
+            Spacer(Modifier.height(8.dp))
+            if (Repo.baselineActive(data)) {
+                Text("Ölçüm haftası: gün ${Repo.baselineDay(data)}/7", style = MaterialTheme.typography.titleMedium)
+                Muted("Bu hafta yalnızca sayılıyor, müdahale yok.")
+                LinkButton("Ölçümü bitir, şimdi başla") { Repo.updateSettings { it.copy(baselineWeek = false) } }
+            }
+        }
+
+        BatchPanel()
 
         Panel {
             Eyebrow("Hedef uygulamalar")
@@ -193,4 +238,62 @@ private fun PlansDialog(onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("İptal") } },
     )
+}
+
+@Composable
+private fun BatchPanel() {
+    val context = LocalContext.current
+    val data by Repo.data.collectAsState()
+    val s = data.settings
+    val tick by UiEvents.resumed.collectAsState()
+    val listenerOn = remember(tick) { Perms.notificationListenerOn(context) }
+
+    Panel {
+        Eyebrow("Toplu bildirimler")
+        Spacer(Modifier.height(6.dp))
+        Muted(
+            "Seçtiğin uygulamaların bildirimleri anında gelmez; günde 3 kez tek bir özet olarak gelir. " +
+                "Mesajlaşma ve aramalar dokunulmaz. Bildirimler yalnızca telefonda tutulur.",
+        )
+        Spacer(Modifier.height(10.dp))
+        SwitchRow(title = "Toplu bildirim modu", sub = if (listenerOn) "Bildirim erişimi açık" else "Bildirim erişimi gerekli", checked = s.batchOn) { on ->
+            Repo.updateSettings { it.copy(batchOn = on) }
+            com.enoli.odak.work.BatchWorker.schedule(context)
+            if (on && !listenerOn) Perms.openNotificationListener(context)
+        }
+        if (s.batchOn && !listenerOn) {
+            OutlinedButton(onClick = { Perms.openNotificationListener(context) }) { Text("Bildirim erişimini aç") }
+        }
+        if (s.batchOn) {
+            Spacer(Modifier.height(10.dp))
+            Text("Saatler", style = MaterialTheme.typography.titleMedium)
+            s.batchHours.forEachIndexed { i, h ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${i + 1}.", modifier = Modifier.width(28.dp))
+                    Stepper(h, { v ->
+                        Repo.updateSettings { st -> st.copy(batchHours = st.batchHours.mapIndexed { j, x -> if (j == i) v else x }) }
+                    }, 0, 23) { "%02d:00".format(it) }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("Uygulamalar", style = MaterialTheme.typography.titleMedium)
+            com.enoli.odak.data.Catalog.apps.forEach { app ->
+                val on = app.pkg in s.batchApps
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = on,
+                        onCheckedChange = { c ->
+                            Repo.updateSettings { st ->
+                                st.copy(batchApps = if (c) st.batchApps + app.pkg else st.batchApps - app.pkg)
+                            }
+                        },
+                    )
+                    Text(app.label)
+                }
+            }
+            if (data.batchQueue.isNotEmpty()) {
+                Muted("Sırada bekleyen: ${data.batchQueue.size}")
+            }
+        }
+    }
 }

@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** MainActivity her öne geldiğinde artar; izin durumunu yeniden okumak için. */
 object UiEvents {
     val resumed = MutableStateFlow(0)
+    /** Bildirimden açılacak ekran (ör. toplu bildirim kutusu). */
+    val openRequest = MutableStateFlow<String?>(null)
 }
 
 object Perms {
@@ -45,6 +47,35 @@ object Perms {
         context.startActivity(
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
+    }
+
+    fun notificationListenerOn(context: Context): Boolean =
+        androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+
+    fun openNotificationListener(context: Context) {
+        context.startActivity(
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+
+    fun usageOn(context: Context): Boolean {
+        val ops = context.getSystemService(android.app.AppOpsManager::class.java) ?: return false
+        val mode = if (android.os.Build.VERSION.SDK_INT >= 29) {
+            ops.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            ops.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+        }
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    fun openUsage(context: Context) {
+        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    fun launchApp(context: Context, pkg: String) {
+        val i = context.packageManager.getLaunchIntentForPackage(pkg) ?: return
+        context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     fun goHome(context: Context) {

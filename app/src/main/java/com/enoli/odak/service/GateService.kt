@@ -52,7 +52,25 @@ class GateService : AccessibilityService() {
         if (pkg != foregroundPkg) return
 
         val target = targets[pkg] ?: return
+        if (data.settings.maintenance) return // bakım modu: yalnızca kartlar kalır
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            checkScroll(target, now)
+        }
         evaluate(target, event, now)
+    }
+
+    /** 1 · Kesintisiz kaydırma eşiği aşıldıysa kapatılabilir ara ekranı aç. */
+    private fun checkScroll(target: TargetApp, now: Long) {
+        val runMs = GateState.onScroll(target.pkg, now)
+        val thresholdMs = Repo.effectiveScrollMin() * 60_000L
+        if (runMs < thresholdMs) return
+        if (!Repo.interventionsOn() || Repo.onBreak() || !GateState.canLaunch(now)) return
+        val root = rootInActiveWindow ?: return
+        if (root.packageName?.toString() != target.pkg) return
+        GateState.markLaunched(now)
+        GateState.resetScroll(target.pkg)
+        Repo.logEvent("scroll_gate", target.pkg)
+        start(target, StopActivity.MODE_SCROLL)
     }
 
     private fun evaluate(target: TargetApp, event: AccessibilityEvent, now: Long) {
@@ -75,11 +93,22 @@ class GateService : AccessibilityService() {
 
     private fun launchGate(target: TargetApp, now: Long) {
         GateState.markLaunched(now)
-        Repo.logTrigger()
+        if (Repo.baselineActive()) {
+            // 6 · Ölçüm haftası: müdahale yok, yalnızca say. Bu ziyaret boyunca tekrar sayma.
+            Repo.logBaseline(target.pkg)
+            GateState.grant(target.pkg, remind = false)
+            return
+        }
+        Repo.logTrigger(target.pkg)
+        start(target, StopActivity.MODE_GATE)
+    }
+
+    private fun start(target: TargetApp, mode: String) {
         val intent = Intent(this, StopActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra(StopActivity.EXTRA_PKG, target.pkg)
             .putExtra(StopActivity.EXTRA_LABEL, target.label)
+            .putExtra(StopActivity.EXTRA_MODE, mode)
         try {
             startActivity(intent)
         } catch (_: Exception) {

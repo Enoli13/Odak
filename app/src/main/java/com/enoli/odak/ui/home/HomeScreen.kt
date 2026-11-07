@@ -41,6 +41,7 @@ fun HomeScreen(
     onStudy: (Int) -> Unit,
     onSrbai: () -> Unit,
     onDecks: () -> Unit,
+    onInbox: () -> Unit,
 ) {
     val context = LocalContext.current
     val data by Repo.data.collectAsState()
@@ -67,6 +68,7 @@ fun HomeScreen(
     val daysIn = Day.today() - s.startDay
     val gap = Repo.daysSinceLastTick(data)
     val srbaiDone = data.srbai.any { it.weekStart == week }
+    val planPassed = java.time.LocalTime.now().let { it.hour * 60 + it.minute } > s.planHour * 60 + s.planMinute
 
     Column(
         Modifier
@@ -93,18 +95,76 @@ fun HomeScreen(
             }
         }
 
-        // Suçlama yok: süre değil, vazgeçiş ve kart sayılır.
+        // 6 · Ölçüm haftası
+        if (Repo.baselineActive(data)) {
+            Panel(tint = OdakColors.GreenSoft) {
+                Eyebrow("Ölçüm haftası · gün ${Repo.baselineDay(data)}/7")
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Bu hafta Odak yalnızca sayıyor; durdurma ekranı çıkmıyor. Böylece kendi başlangıç çizgini görürsün.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(6.dp))
+                Muted("Bugüne kadar ${data.days.values.sumOf { it.baseline }} dürtü sayıldı.")
+                LinkButton("Ölçümü bitir, şimdi başla") { Repo.updateSettings { it.copy(baselineWeek = false) } }
+            }
+        }
+
+        // 4 · Kademeli geri çekilme notları
+        if (s.withdrawNote.isNotBlank()) {
+            Panel(tint = OdakColors.GreenSoft) {
+                Text(s.withdrawNote, style = MaterialTheme.typography.bodyLarge)
+                LinkButton("Tamam") { Repo.dismissWithdrawNote() }
+            }
+        }
+        if (s.maintenanceOffered && !s.maintenance) {
+            Panel(tint = OdakColors.AmberSoft) {
+                Eyebrow("Bakım modu", OdakColors.Amber)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "4 haftadır otomatiklik puanın 6 ve üstünde. Çalışma artık senin alışkanlığın. " +
+                        "İstersen durdurma ekranlarını kaldıralım; yalnızca kartlar ve haftalık özet kalsın.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(onClick = { Repo.acceptMaintenance(true) }) { Text("Bakım moduna geç") }
+                    OutlinedButton(onClick = { Repo.acceptMaintenance(false) }) { Text("Şimdilik değil") }
+                }
+            }
+        }
+
+        // 5 · İlerleme odaklı ana kart: süre değil, kazanılan davranış.
         Panel {
-            Eyebrow("Bugünün özeti")
+            Eyebrow("Bugün")
             Spacer(Modifier.height(8.dp))
             Text(
-                if (today.quits == 0 && today.cards == 0) "Bugün henüz bir şey yok. Sorun değil, gün bitmedi."
-                else "Bugün ${today.quits} kez vazgeçtin, ${today.cards} kart çözdün.",
+                "${today.quits} kez vazgeçtin · ${today.cards} kart · ${minOf(data.programWeek(), 99)}. haftadasın",
                 style = MaterialTheme.typography.titleLarge,
             )
+            Spacer(Modifier.height(6.dp))
+            Muted(
+                if (data.programWeek() <= 10) "10 haftalık ritmin ${data.programWeek()}. haftası." else "10 haftayı tamamladın; ritim sürüyor.",
+            )
             if (weekTriggers > 0) {
-                Spacer(Modifier.height(6.dp))
                 Muted("Bu haftaki vazgeçme oranın: %${weekQuits * 100 / weekTriggers} (${weekQuits}/${weekTriggers})")
+            }
+            if (!today.ticked && planPassed) {
+                Spacer(Modifier.height(6.dp))
+                Muted("Bugün olmadıysa sorun değil: yarın aynı saatte (%02d:%02d) devam.".format(s.planHour, s.planMinute))
+            }
+            if (s.maintenance) {
+                Spacer(Modifier.height(6.dp))
+                Muted("Bakım modundasın: durdurma ekranları kapalı. Ayarlardan istediğin an geri açabilirsin.")
+            }
+        }
+
+        if (data.batchInbox.isNotEmpty()) {
+            Panel {
+                Eyebrow("Toplu bildirimler")
+                Spacer(Modifier.height(4.dp))
+                Text("${data.batchInbox.size} bildirim seni bekliyor.")
+                LinkButton("Göster", onInbox)
             }
         }
 

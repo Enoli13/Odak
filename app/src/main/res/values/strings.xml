@@ -3,4 +3,5 @@
     <string name="app_name">Odak</string>
     <string name="service_label">Odak — dürtü anı</string>
     <string name="service_description">Odak, seçtiğin uygulamaların ya da Reels/Shorts/Keşfet ekranının açıldığını fark eder ve önce kısa bir durdurma ekranı gösterir. Ekrandaki yazıları okumaz, kaydetmez, hiçbir yere göndermez; yalnızca hangi uygulamanın ve hangi sekmenin açık olduğuna bakar. Kararı her zaman sen verirsin: “Yine de aç” düğmesi hep oradadır.</string>
+    <string name="batch_label">Odak — toplu bildirim</string>
 </resources>

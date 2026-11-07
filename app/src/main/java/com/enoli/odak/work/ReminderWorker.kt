@@ -47,7 +47,12 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
 
         val week = Day.weekStart(Day.today())
         if (Day.isSunday() && d.srbai.none { it.weekStart == week }) {
-            Notifs.post(applicationContext, Notifs.ID_SRBAI, "Haftalık 4 soru", "Çalışma alışkanlığın ne kadar otomatikleşti? 30 saniye sürer.")
+            val top = com.enoli.odak.data.Report.moods(d, sinceDay = week).topContext
+            val extra = if (top != null) " Bu haftanın en sık tetikleyicisi: $top." else ""
+            Notifs.post(
+                applicationContext, Notifs.ID_SRBAI, "Haftalık 4 soru ve özet",
+                "Çalışma alışkanlığın ne kadar otomatikleşti? 30 saniye sürer.$extra",
+            )
         }
         return Result.success()
     }
