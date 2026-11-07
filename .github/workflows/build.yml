@@ -1,0 +1,48 @@
+name: APK derle
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Derle
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk "out/Odak-${GITHUB_REF_NAME//\//-}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Odak-apk
+          path: out/*.apk
+      - name: Release yayınla
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Odak ${{ github.ref_name }}
+          files: out/*.apk
+          body: |
+            Odak — Scroll'dan Çalışmaya, ilk MVP sürümü.
+
+            **İçinde:** başlangıç sözleşmesi (eğer–o zaman planları), durdurma ekranı (nefes → "Vazgeç → 3 kart" / "Yine de aç"), kart motoru (önce cevap, sonra çevir; karışık desteler, toplu ekleme), 10 haftalık ritim takvimi ve haftalık 4 soru, "Az önce ne yapacaktın?" hatırlatması, hak edilmiş mola.
+
+            **Kurulum:**
+            1. APK'yı indir ve kur.
+            2. Uygulamada başlangıç sözleşmesini doldur.
+            3. Ayarlar → Erişilebilirlik → Odak'ı aç. İzin gri görünürse: Ayarlar → Uygulamalar → Odak → ⋮ → "Kısıtlanmış ayarlara izin ver".
+
+            Tüm veri telefonda kalır; hesap ve internet izni yok.

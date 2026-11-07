@@ -1,0 +1,1 @@
+# Odak — şimdilik küçültme kapalı.

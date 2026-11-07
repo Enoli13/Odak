@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="odak_bg">#F6F3EC</color>
+    <color name="odak_ink">#1F2A24</color>
+    <color name="odak_green">#2F6B4F</color>
+
+    <style name="Theme.Odak" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/odak_bg</item>
+        <item name="android:navigationBarColor">@color/odak_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/odak_bg</item>
+    </style>
+
+    <style name="Theme.Odak.Gate" parent="Theme.Odak">
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
+</resources>
