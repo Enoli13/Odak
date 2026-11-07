@@ -25,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,9 +57,28 @@ class MainActivity : ComponentActivity() {
         setContent {
             OdakTheme {
                 val data by Repo.data.collectAsState()
-                if (!data.settings.onboarded) OnboardingScreen() else AppShell()
+                Box(Modifier.fillMaxSize()) {
+                    if (!data.settings.onboarded) OnboardingScreen() else AppShell()
+                    // Her açılışta yükleme ekranı (uygulama yeniden öne geldiğinde de)
+                    key(splashRun) { SplashOverlay() }
+                }
             }
         }
+    }
+
+    private var splashRun by mutableIntStateOf(0)
+    private var leftApp = false
+
+    override fun onStop() {
+        super.onStop()
+        // Yalnızca uygulamadan gerçekten çıkıldıysa (ayar değişikliği değil)
+        leftApp = !isChangingConfigurations
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        if (leftApp) splashRun++
+        leftApp = false
     }
 
     override fun onResume() {
