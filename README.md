@@ -23,7 +23,7 @@ Ek: desteye **toplu kart yapıştırma** (`soru | cevap | neden?` her satıra bi
 ### Yol 1 — GitHub Releases
 1. Bu klasörü yeni bir GitHub deposuna yükle.
 2. **Actions** sekmesinde "APK derle" iş akışı kendiliğinden çalışır.
-3. `v` ile başlayan her etiket (ör. `v0.1.0`) APK ile birlikte Releases sayfasına otomatik yayınlanır.
+3. main dalına her gönderimde APK derlenir ve `app/build.gradle.kts` içindeki `versionName` ile (ör. `v0.1.0`) Releases sayfasına otomatik yayınlanır. Yeni sürüm için `versionName`i artır.
 
 ### Yol 2 — Android Studio
 `Odak` klasörünü aç → Gradle senkronize olsun → ▶ Run.

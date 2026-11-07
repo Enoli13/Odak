@@ -24,16 +24,20 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release.apk "out/Odak-${GITHUB_REF_NAME//\//-}.apk"
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          cp app/build/outputs/apk/release/app-release.apk "out/Odak-v$VERSION.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: Odak-apk
           path: out/*.apk
       - name: Release yayınla
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          name: Odak ${{ github.ref_name }}
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: Odak v${{ env.VERSION }}
           files: out/*.apk
           body: |
             Odak — Scroll'dan Çalışmaya, ilk MVP sürümü.
