@@ -1,4 +1,9 @@
-# Odak — Scroll'dan Çalışmaya (MVP)
+# Odak — Scroll'dan Çalışmaya: Reels, Shorts ve TikTok engelleyici odaklanma uygulaması
+
+> Instagram Reels / YouTube Shorts / TikTok dürtüsünü kısa bir kart çalışmasına çeviren Android dijital detoks uygulaması.
+
+🌐 **Proje sayfası:** [https://enoli13.github.io/odak/](https://enoli13.github.io/odak/) · ⬇ [Son sürümü indir](https://github.com/Enoli13/odak/releases/latest)
+
 
 Reels/Shorts/TikTok açma dürtüsünü 3 kartlık kısa bir kendini test etme turuna çeviren Android uygulaması.
 Tasarım belgesindeki MVP'nin dört modülü + ana döngünün "Ne yapacaktın?" hatırlatıcısı ve hak edilmiş mola.
